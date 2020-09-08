@@ -1,0 +1,9 @@
+global:
+  namespace: emojivoto
+  hubID: buoyantio
+emoji:
+  image: emojivoto-emoji-svc:v10
+web:
+  image: emojivoto-web:v10
+voting:
+  image: emojivoto-voting-svc:v10

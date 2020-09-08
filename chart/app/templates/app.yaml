@@ -1,0 +1,220 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: emojivoto
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: emoji
+  namespace: {{ .Values.global.namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: voting
+  namespace: {{ .Values.global.namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+  namespace: {{ .Values.global.namespace }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emoji-svc-{{ template "app.fullname" .}}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  ports:
+  - name: grpc
+    port: 8080
+    targetPort: 8080
+  - name: prom
+    port: 8801
+    targetPort: 8801
+  selector:
+    app: emoji-svc
+---
+apiVersion: v1
+kind: Service-{{ template "app.fullname" .}}
+metadata:
+  name: voting-svc
+  namespace: {{ .Values.global.namespace }}
+spec:
+  ports:
+  - name: grpc
+    port: 8080
+    targetPort: 8080
+  - name: prom
+    port: 8801
+    targetPort: 8801
+  selector:
+    app: voting-svc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: {{ .Values.global.namespace }}
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: web-svc
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: emoji
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: {{ template "app.fullname" .}}
+  name: emoji-{{ template "app.fullname" .}}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emoji-svc
+      version: {{ template "app.fullname" .}}
+  template:
+    metadata:
+      labels:
+        app: emoji-svc
+        version: {{ template "app.fullname" .}}
+    spec:
+      containers:
+      - env:
+        - name: GRPC_PORT
+          value: "8080"
+        - name: PROM_PORT
+          value: "8801"
+        image: {{ .Values.global.hubID }}/{{ .Values.emoji.image }}
+        name: emoji-svc
+        ports:
+        - containerPort: 8080
+          name: grpc
+        - containerPort: 8801
+          name: prom
+        resources:
+          requests:
+            cpu: 100m
+      serviceAccountName: emoji
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: vote-bot
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: {{ template "app.fullname" .}}
+  name: vote-bot-{{ template "app.fullname" .}}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vote-bot
+      version: {{ template "app.fullname" .}}
+  template:
+    metadata:
+      labels:
+        app: vote-bot
+        version: {{ template "app.fullname" .}}
+    spec:
+      containers:
+      - command:
+        - emojivoto-vote-bot
+        env:
+        - name: WEB_HOST
+          value: web-svc.emojivoto:80
+        image: {{ .Values.global.hubID }}/emojivoto-web:{{ template "app.fullname" .}}
+        name: vote-bot
+        resources:
+          requests:
+            cpu: 10m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: voting
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: {{ template "app.fullname" .}}
+  name: voting-{{ template "app.fullname" .}}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voting-svc
+      version: {{ template "app.fullname" .}}
+  template:
+    metadata:
+      labels:
+        app: voting-svc
+        version: {{ template "app.fullname" .}}
+    spec:
+      containers:
+      - env:
+        - name: GRPC_PORT
+          value: "8080"
+        - name: PROM_PORT
+          value: "8801"
+        image: {{ .Values.global.hubID }}/ {{ .Values.voting.image }}
+        name: voting-svc
+        ports:
+        - containerPort: 8080
+          name: grpc
+        - containerPort: 8801
+          name: prom
+        resources:
+          requests:
+            cpu: 100m
+      serviceAccountName: voting
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: {{ template "app.fullname" .}}
+  name: web-{{ template "app.fullname" .}}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-svc
+      version: {{ template "app.fullname" .}}
+  template:
+    metadata:
+      labels:
+        app: web-svc
+        version: {{ template "app.fullname" .}}
+    spec:
+      containers:
+      - env:
+        - name: WEB_PORT
+          value: "8080"
+        - name: EMOJISVC_HOST
+          value: emoji-svc.emojivoto:8080
+        - name: VOTINGSVC_HOST
+          value: voting-svc.emojivoto:8080
+        - name: INDEX_BUNDLE
+          value: dist/index_bundle.js
+        image: {{ .Values.global.hubID }}/{{ .Values.web.image }}
+        name: web-svc
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+      serviceAccountName: web
