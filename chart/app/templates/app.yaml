@@ -38,7 +38,7 @@ spec:
     app: emoji-svc
 ---
 apiVersion: v1
-kind: Service-{{ template "app.fullname" .}}
+kind: Service
 metadata:
   name: voting-svc
   namespace: {{ .Values.global.namespace }}
