@@ -133,7 +133,7 @@ spec:
         env:
         - name: WEB_HOST
           value: web-svc.emojivoto:80
-        image: {{ .Values.global.hubID }}/emojivoto-web:{{ template "app.fullname" .}}
+        image: {{ .Values.global.hubID }}/{{ template "app.fullname" .}}
         name: vote-bot
         resources:
           requests:
@@ -166,7 +166,7 @@ spec:
           value: "8080"
         - name: PROM_PORT
           value: "8801"
-        image: {{ .Values.global.hubID }}/ {{ .Values.voting.image }}
+        image: {{ .Values.global.hubID }}/{{ .Values.voting.image }}
         name: voting-svc
         ports:
         - containerPort: 8080
