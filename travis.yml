@@ -1,0 +1,19 @@
+language: bash
+sudo: required
+branches:
+  only:
+  - master
+services:
+- docker
+before_install:
+  - curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
+  - chmod 700 get_helm.sh
+  - ./get_helm.sh
+  # We can add a script to push our Docker images to Dockerhub
+  # - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  # - docker build -t <dockerUser>/pypytest:$TRAVIS_BUILD_NUMBER .
+  # - docker push <dockerUser>/pypytest
+deploy:
+  on:
+    branch: master
+  - helm install ./charts/app
