@@ -133,7 +133,7 @@ spec:
         env:
         - name: WEB_HOST
           value: web-svc.emojivoto:80
-        image: {{ .Values.global.hubID }}/{{ template "app.fullname" .}}
+        image: {{ .Values.global.hubID }}/{{ .Values.web.image }}
         name: vote-bot
         resources:
           requests:
